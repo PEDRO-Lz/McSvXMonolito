@@ -1,35 +1,29 @@
 const express = require('express')
 const jwt = require('jsonwebtoken')
-const fs = require('fs')
+const mysql = require('mysql2/promise')
 const bodyParser = require('body-parser')
 const app = express()
 
 app.use(bodyParser.json())
 
-const USERS_FILE = '/data/users.json'
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
+})
 
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
   const { username, password } = req.body
-  let users = []
-
   try {
-    if (fs.existsSync(USERS_FILE)) {
-      users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'))
-    }
-  } catch (err) {
-    console.error('Erro ao ler o arquivo de usuários:', err)
-    return res.status(500).json({ error: 'Erro ao ler base de usuários' })
-  
-  }
-  const user = users.find(u => u.username === username && u.password === password)
-  
-  if (!user) return res.status(401).json({ error: 'Invalid credentials' })
-  
-    try {
+    const [rows] = await pool.query('SELECT * FROM users WHERE username = ? AND password = ?', [username, password])
+    if (rows.length === 0)
+      return res.status(401).json({ error: 'Invalid credentials' })
+
     const token = jwt.sign({ username }, 'secret', { expiresIn: '1h' })
     res.json({ token })
-  } catch (e) {
-    console.error('Erro ao gerar token JWT:', e)
+  } catch (err) {
+    console.error('Erro no login:', err)
     res.status(500).json({ error: 'Erro interno no login' })
   }
 })

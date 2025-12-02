@@ -1,0 +1,20 @@
+version: '3'
+services:
+  register:
+    build: ./register
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./data:/data
+  login:
+    build: ./login
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./data:/data
+  profile:
+    build: ./profile
+    ports:
+      - "3003:3003"
+    volumes:
+      - ./data:/data
